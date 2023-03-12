@@ -10,33 +10,64 @@ class Burger:
         'English muffin': 'english'
     }
 
-    FILL_MAP = {
+    SAUCE_MAP = {
+        'Ketchup': 'ketchup',
+        'Mustard': 'mustard',
+        'Mayonaisse': 'mayo',
+        'BBQ': 'bbq'
+    }
+
+    TOPPING_MAP = {
         'Lettuce': 'lettuce',
         'Tomato': 'tomato',
         'Bacon': 'bacon',
-        'Chicken patty': 'chicken',
-        'Beef - Rare': 'beefr',
-        'Beef - Medium': 'beefm',
-        'Beef - Well Done': 'beefw'
+        'Cheese': 'cheese',
+        'Onion': 'onion',
+        'Pickle': 'pickle'
+    }
+
+    MEAT_MAP = {
+        'Chicken': 'chicken',
+        'Beef': 'beef'
+    }
+
+    DONENESS_MAP = {
+        'Rare': 'r',
+        'Medium': 'm',
+        'Well Done': 'w'
     }
 
     buns = [bun for bun in BUN_MAP]
+    sauces = [sauce for sauce in SAUCE_MAP]
+    meats = [meat for meat in MEAT_MAP]
+    doneness = [done for done in DONENESS_MAP]
 
     def __init__(self):
         self.window = None
-        self.frame = None
-        self.bun = random.choice(self.buns)
-        self.menu = 'bun'
+        self.topping_frame = None
+        self.meat_frame = None
 
-        self.toppings = ['Lettuce', 'Tomato', 'Lettuce']
+        self.bun = random.choice(self.buns)
+        self.sauce = random.choice(self.sauces)
+        self.meat = self.MEAT_MAP[random.choice(self.meats)]
+        self.done = random.choice(self.doneness)
+        self.meat += self.DONENESS_MAP[self.done] if self.meat == 'beef' else ''
+
+        self.toppings = {topping: bool(random.getrandbits(1)) for topping in self.TOPPING_MAP}
         self.create_window()
-        self.show(self.bun, self.toppings)
+        self.show()
+
+    def hr(self):
+        label = Label(self.window, text='---------------------')
+        label.pack()
+
+    def add_label(self, text):
+        label = Label(self.window, text=text)
+        label.pack()
 
     def create_window(self):
         self.window = Tk()
         self.window.minsize(500, 200)
-
-        self.frame = Frame(self.window)
 
     def clear_window(self):
         for widget in self.window.winfo_children():
@@ -44,51 +75,134 @@ class Burger:
 
     def reset_window(self):
         self.clear_window()
-        self.show(self.bun, self.toppings)
+        self.show()
 
-    def show(self, bun, fillings):
-        self.create_menu()
+    def show(self):
+        self.bun_menu()
+        self.sauce_menu()
+        self.meat_menu()
+        self.doneness_menu()
+        self.topping_menu()
 
-        top = bun_pos(self.BUN_MAP[bun], 't')
+        top = bun_pos(self.BUN_MAP[self.bun], 't')
         top_img = create_image(image(top))
         create_img_label(top_img, self.window)
 
         i = 0
-        fill_imgs = []
-        for filling in fillings:
-            fill_imgs.append(create_image(image(self.FILL_MAP[filling])))
-            create_img_label(fill_imgs[i], self.window)
+        top_imgs = []
+        for topping in self.toppings:
+            if not self.toppings[topping]:
+                continue
+            top_imgs.append(create_image(image(self.TOPPING_MAP[topping])))
+            create_img_label(top_imgs[i], self.window)
             i += 1
 
-        bot = bun_pos(self.BUN_MAP[bun], 'b')
+        meat = create_image(image(self.meat))
+        create_img_label(meat, self.window)
+
+        sauce = create_image(image(self.SAUCE_MAP[self.sauce]))
+        create_img_label(sauce, self.window)
+
+        bot = bun_pos(self.BUN_MAP[self.bun], 'b')
         bot_img = create_image(image(bot))
         create_img_label(bot_img, self.window)
 
         self.window.mainloop()
 
     def bun_menu(self):
+        self.add_label('Select bun:')
+
         selected_bun = StringVar(self.window)
         selected_bun.set(self.bun)
 
         bun_menu = OptionMenu(self.window, selected_bun, *self.buns, command=self.change_bun)
         bun_menu.pack()
 
-    def create_menu(self):
-        if self.menu == 'bun':
-            self.bun_menu()
-            return
-
-        if self.menu == 'topping':
-            pass
-
     def change_bun(self, bun):
         self.bun = bun
         self.reset_window()
 
+    def sauce_menu(self):
+        self.hr()
+        self.add_label('Select sauce:')
 
-def option_change(val):
-    root.destroy()
-    show_burger(['Lettuce', 'Tomato', 'Lettuce'], fill_map, val, bun_map, root)
+        choice = StringVar()
+        choice.set(self.sauce)
+
+        menu = OptionMenu(self.window, choice, *self.sauces, command=self.change_sauce)
+        menu.pack()
+
+    def change_sauce(self, sauce):
+        self.sauce = sauce
+        self.reset_window()
+
+    def meat_menu(self):
+        self.hr()
+        self.add_label('Select patty:')
+
+        self.meat_frame = Frame(self.window)
+
+        choice = StringVar()
+        choice.set(random.choice(self.meats))
+
+        for meat in self.meats:
+            button = Radiobutton(
+                self.meat_frame, text=meat, value=self.MEAT_MAP[meat], variable=choice,
+                command=lambda: self.change_meat(choice.get(), self.DONENESS_MAP[self.done])
+            )
+            button.pack(side='left')
+
+        self.meat_frame.pack()
+
+    def change_meat(self, meat, doneness):
+        self.meat = meat + doneness \
+            if meat == 'beef' \
+            else meat
+
+        self.reset_window()
+
+    def doneness_menu(self):
+        if not self.meat.startswith('beef'):
+            return
+
+        self.hr()
+        self.add_label('Select doneness:')
+
+        choice = StringVar()
+        choice.set(self.done)
+
+        menu = OptionMenu(self.window, choice, *self.doneness, command=self.change_doneness)
+        menu.pack()
+
+    def change_doneness(self, doneness):
+        self.done = doneness
+        self.change_meat(self.meat[:-1], self.DONENESS_MAP[doneness])
+
+    def topping_menu(self):
+        self.topping_frame = Frame(self.window)
+
+        self.hr()
+        self.add_label('Select toppings:')
+
+        buttons = []
+
+        for topping in self.toppings:
+            var = BooleanVar()
+            var.set(self.toppings[topping])
+            buttons.append(var)
+            checkbox = Checkbutton(
+                self.topping_frame, text=topping, variable=var
+            )
+            checkbox.pack(side='left')
+
+        def change_topping():
+            self.toppings = {selected: value.get() for selected, value in zip(self.toppings, buttons)}
+            self.reset_window()
+
+        submit = Button(self.topping_frame, text='Submit toppings', command=change_topping)
+        submit.pack()
+
+        self.topping_frame.pack()
 
 
 def image(name):
@@ -111,36 +225,4 @@ def bun_pos(select_bun, top):
     return select_bun + '_' + ('top' if top == 't' else 'bottom') + '.png'
 
 
-def show_burger(fillings, possible_fillings: dict, bun, possible_buns: dict, tkwindow):
-    top = bun_pos(possible_buns[bun], 't')
-    top_img = create_image(image(top))
-    create_img_label(top_img, tkwindow)
-
-    i = 0
-    fill_imgs = []
-    for filling in fillings:
-        fill_imgs.append(create_image(image(possible_fillings[filling])))
-        create_img_label(fill_imgs[i], tkwindow)
-        i += 1
-
-    bot = bun_pos(possible_buns[bun], 'b')
-    bot_img = create_image(image(bot))
-    create_img_label(bot_img, tkwindow)
-
-    tkwindow.mainloop()
-
-
-# root = Tk()
-# root.minsize(500, 200)
-#
-# buns = ['Standart bun', 'Sesame bun', 'English muffin']
-# selected_bun = StringVar(root)
-# selected_bun.set('Standard bun')
-#
-# bun_menu = OptionMenu(root, selected_bun, *buns, command=option_change)
-# bun_menu.pack()
-#
-# show_burger(['Lettuce', 'Tomato', 'Lettuce'], fill_map, 'Standart bun', bun_map, root)
-#
-# root.mainloop()
 burger = Burger()
