@@ -46,6 +46,7 @@ class Burger:
         self.window = None
         self.topping_frame = None
         self.meat_frame = None
+        self.scroll = None
 
         self.bun = random.choice(self.buns)
         self.sauce = random.choice(self.sauces)
@@ -57,12 +58,20 @@ class Burger:
         self.create_window()
         self.show()
 
-    def hr(self):
-        label = Label(self.window, text='---------------------')
+    def hr(self, length: int = 15):
+        """
+        Creates a horizontal ruler.
+        """
+        label = Label(self.window, text=length*'-')
         label.pack()
 
-    def add_label(self, text):
-        label = Label(self.window, text=text)
+    def add_label(self, **kwargs):
+        """
+        Creates a label with specified options.
+        :param kwargs: Label options
+        """
+        kw = {key: value for key, value in kwargs.items()}
+        label = Label(self.window, text=kw.get('text'), image=kw.get('image'))
         label.pack()
 
     def create_window(self):
@@ -70,6 +79,9 @@ class Burger:
         self.window.minsize(500, 200)
 
     def clear_window(self):
+        """
+        Deletes all widgets from the window.
+        """
         for widget in self.window.winfo_children():
             widget.destroy()
 
@@ -78,39 +90,44 @@ class Burger:
         self.show()
 
     def show(self):
+        """
+        Adds all the needed widgets to the window and shows it.
+        """
+        # Create all menus
         self.bun_menu()
         self.sauce_menu()
         self.meat_menu()
         self.doneness_menu()
         self.topping_menu()
 
-        top = bun_pos(self.BUN_MAP[self.bun], 't')
-        top_img = create_image(image(top))
-        create_img_label(top_img, self.window)
+        # Add all images
+        top = self.bun_pos(self.BUN_MAP[self.bun], 't')
+        top_img = self.create_image(self.image(top))
+        self.add_label(image=top_img)
 
         i = 0
         top_imgs = []
         for topping in self.toppings:
             if not self.toppings[topping]:
                 continue
-            top_imgs.append(create_image(image(self.TOPPING_MAP[topping])))
-            create_img_label(top_imgs[i], self.window)
+            top_imgs.append(self.create_image(self.image(self.TOPPING_MAP[topping])))
+            self.add_label(image=top_imgs[i])
             i += 1
 
-        meat = create_image(image(self.meat))
-        create_img_label(meat, self.window)
+        meat = self.create_image(self.image(self.meat))
+        self.add_label(image=meat)
 
-        sauce = create_image(image(self.SAUCE_MAP[self.sauce]))
-        create_img_label(sauce, self.window)
+        sauce = self.create_image(self.image(self.SAUCE_MAP[self.sauce]))
+        self.add_label(image=sauce)
 
-        bot = bun_pos(self.BUN_MAP[self.bun], 'b')
-        bot_img = create_image(image(bot))
-        create_img_label(bot_img, self.window)
+        bot = self.bun_pos(self.BUN_MAP[self.bun], 'b')
+        bot_img = self.create_image(self.image(bot))
+        self.add_label(image=bot_img)
 
         self.window.mainloop()
 
     def bun_menu(self):
-        self.add_label('Select bun:')
+        self.add_label(text='Select bun:')
 
         selected_bun = StringVar(self.window)
         selected_bun.set(self.bun)
@@ -124,7 +141,7 @@ class Burger:
 
     def sauce_menu(self):
         self.hr()
-        self.add_label('Select sauce:')
+        self.add_label(text='Select sauce:')
 
         choice = StringVar()
         choice.set(self.sauce)
@@ -138,7 +155,7 @@ class Burger:
 
     def meat_menu(self):
         self.hr()
-        self.add_label('Select patty:')
+        self.add_label(text='Select patty:')
 
         self.meat_frame = Frame(self.window)
 
@@ -166,7 +183,7 @@ class Burger:
             return
 
         self.hr()
-        self.add_label('Select doneness:')
+        self.add_label(text='Select doneness:')
 
         choice = StringVar()
         choice.set(self.done)
@@ -179,10 +196,14 @@ class Burger:
         self.change_meat(self.meat[:-1], self.DONENESS_MAP[doneness])
 
     def topping_menu(self):
+        def change_topping():
+            self.toppings = {selected: value.get() for selected, value in zip(self.toppings, buttons)}
+            self.reset_window()
+
         self.topping_frame = Frame(self.window)
 
         self.hr()
-        self.add_label('Select toppings:')
+        self.add_label(text='Select toppings:')
 
         buttons = []
 
@@ -191,38 +212,41 @@ class Burger:
             var.set(self.toppings[topping])
             buttons.append(var)
             checkbox = Checkbutton(
-                self.topping_frame, text=topping, variable=var
+                self.topping_frame, text=topping, variable=var,
+                command=change_topping
             )
             checkbox.pack(side='left')
 
-        def change_topping():
-            self.toppings = {selected: value.get() for selected, value in zip(self.toppings, buttons)}
-            self.reset_window()
-
-        submit = Button(self.topping_frame, text='Submit toppings', command=change_topping)
-        submit.pack()
-
         self.topping_frame.pack()
 
+    @staticmethod
+    def image(name):
+        """
+        :param name: Name of the image
+        :return: Path to the image
+        """
+        return 'imgs/' + name + ('.png' if not name.endswith('.png') else '')
 
-def image(name):
-    return 'imgs/' + name + ('.png' if not name.endswith('.png') else '')
+    @staticmethod
+    def create_image(path):
+        """
+        :param path: Path to the wanted image
+        :return: Object of the image to pass to tkinter
+        """
+        img = Image.open(path)
+        img = ImageTk.PhotoImage(img)
 
+        return img
 
-def create_image(path):
-    img = Image.open(path)
-    img = ImageTk.PhotoImage(img)
-
-    return img
-
-
-def create_img_label(img, tkwindow):
-    label = Label(tkwindow, image=img)
-    label.pack()
-
-
-def bun_pos(select_bun, top):
-    return select_bun + '_' + ('top' if top == 't' else 'bottom') + '.png'
+    @staticmethod
+    def bun_pos(select_bun, position):
+        """
+        Adds a suffix to image name based on if it's the top or bottom bun.
+        :param select_bun: Selected bun name
+        :param position: Position of the bun
+        :return: Path to the wanted image
+        """
+        return select_bun + '_' + ('top' if position == 't' else 'bottom') + '.png'
 
 
 burger = Burger()
